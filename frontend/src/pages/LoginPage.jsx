@@ -1,7 +1,7 @@
 import React from 'react'
 import { useState} from 'react';
 import { motion } from 'framer-motion';
-import Input from '../components/input.jsx';
+import Input from '../components/Input.jsx';
 import { Mail, Loader, Lock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore.js';

@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useAuthStore } from "../store/authStore";
-import Input from "../components/input.jsx";
+import Input from "../components/Input.jsx";
 import { Mail,ArrowLeft,Loader } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
