@@ -5,16 +5,16 @@ import dotenv from "dotenv";
 dotenv.config();
 
 export const generateTokenAndSetCookie = (res, userId) => {
-    const token = jwt.sign({ userId }, process.env.JWT_SECRET, {
-        expiresIn: "7d",
-    });
+  const token = jwt.sign({ userId }, process.env.JWT_SECRET, {
+    expiresIn: "7d",
+  });
 
-    res.cookie("token", token, {
-        httpOnly: true, // Helps to prevent XSS attacks
-        secure: process.env.NODE_ENV === "production", // Hanya true di production
-        sameSite: "strict", // Helps to prevent CSRF attacks
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 hari dalam ms
-    });
+  res.cookie("token", token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production", // Vercel/host lain pakai HTTPS
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
 
-    return token;
+  return token;
 };
