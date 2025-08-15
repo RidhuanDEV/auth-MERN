@@ -14,7 +14,7 @@ const app = express();
 
 const __dirname = path.resolve();
 app.use(cors({
-    origin: "http://localhost:5173", // Replace with your frontend URL
+    origin: ["http://localhost:5173", "https://auth-mern-qi69.vercel.app"], // Replace with your frontend URL
     credentials: true,
 }));
 app.use(express.json()); // Middleware to parse JSON requests
