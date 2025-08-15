@@ -14,7 +14,7 @@ const app = express();
 
 const __dirname = path.resolve();
 app.use(cors({
-    origin: process.env.CLIENT_URL, // Replace with your frontend URL
+    origin: [process.env.CLIENT_URL, "https://auth-mern-hqzw.vercel.app"], // Replace with your frontend URL
     credentials: true,
 }));
 app.use(express.json()); // Middleware to parse JSON requests
