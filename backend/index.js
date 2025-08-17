@@ -12,36 +12,10 @@ dotenv.config();
 const app = express();
 const __dirname = path.resolve();
 
-// ===== CORS setup =====
-const allowedOrigins = [
-  process.env.CLIENT_URL,       // ex: https://auth-mern-hqzw.vercel.app (SET di env backend Vercel)
-  "https://auth-mern-wan-fe.vercel.app"       // untuk development lokal
-].filter(Boolean);
+const cors = require('cors'); // Import the cors 
 
-// Kalau kamu ingin mengizinkan semua preview domain vercel untuk project yang sama,
-// aktifkan regex ini. (Kalau tidak mau terlalu longgar, hapus blok regex di bawah.)
-function isVercelPreview(origin) {
-  return /^https:\/\/[a-z0-9-]+\.vercel\.app$/.test(origin || "");
-}
-
-const corsOptions = {
-  origin(origin, cb) {
-    // izinkan tools tanpa Origin (Postman) + whitelist exact
-    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
-    // izinkan preview deployment vercel (opsional)
-    if (isVercelPreview(origin)) return cb(null, true);
-    return cb(new Error("Not allowed by CORS: " + origin));
-  },
-  credentials: true,
-  methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-  exposedHeaders: ["set-cookie"],
-  optionsSuccessStatus: 204,
-};
-
-app.use(cors(corsOptions));
-// penting: layani preflight ke semua path
-app.options("*", cors(corsOptions));
+// Enable CORS for all routes (allows requests from any origin)
+app.use(cors({ origin: "https://auth-mern-wan-fe.vercel.app", credentials: true }));
 
 // reverse proxy trust (agar secure cookie & sameSite:none bekerja di host HTTPS)
 app.set("trust proxy", 1);
