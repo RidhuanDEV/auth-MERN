@@ -15,7 +15,7 @@ const __dirname = path.resolve();
 // ===== CORS setup =====
 const allowedOrigins = [
   process.env.CLIENT_URL,       // ex: https://auth-mern-hqzw.vercel.app (SET di env backend Vercel)
-  "https://auth-mern-wan.vercel.app"       // untuk development lokal
+  "https://auth-mern-wan-fe.vercel.app"       // untuk development lokal
 ].filter(Boolean);
 
 // Kalau kamu ingin mengizinkan semua preview domain vercel untuk project yang sama,
