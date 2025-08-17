@@ -12,8 +12,18 @@ dotenv.config();
 const app = express();
 const __dirname = path.resolve();
 
-// Enable CORS for all routes (allows requests from any origin)
-app.use(cors("https://auth-mern-wan-fe.vercel.app"));
+
+const corsOptions = {
+  origin: "https://auth-mern-wan-fe.vercel.app", // FE URL
+  credentials: true,
+  methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  optionsSuccessStatus: 204
+};
+
+app.use(cors(corsOptions));
+app.options("*", corsOptions); // ⚠️ wajib untuk preflight
+
 
 // reverse proxy trust (agar secure cookie & sameSite:none bekerja di host HTTPS)
 app.set("trust proxy", 1);
