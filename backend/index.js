@@ -12,7 +12,6 @@ dotenv.config();
 const app = express();
 const __dirname = path.resolve();
 
-
 // Enable CORS for all routes (allows requests from any origin)
 app.use(cors("https://auth-mern-wan-fe.vercel.app"));
 
@@ -28,14 +27,13 @@ app.use(cookieParser());
 app.use("/api/auth", authRoutes);
 
 // ===== Static SPA (opsional, jika kamu juga host FE di server yang sama) =====
-if (process.env.NODE_ENV === "production") {
-  app.use(express.static(path.join(__dirname, "frontend/dist")));
 
-  // Layani semua route non-API ke index.html (SPA)
-  app.get(/^\/(?!api).*/, (req, res) => {
-    res.sendFile(path.join(__dirname, "frontend", "dist", "index.html"));
-  });
-}
+app.use(express.static(path.join(__dirname, "frontend/dist")));
+
+// Layani semua route non-API ke index.html (SPA)
+app.get(/^\/(?!api).*/, (req, res) => {
+  res.sendFile(path.join(__dirname, "frontend", "dist", "index.html"));
+});
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
