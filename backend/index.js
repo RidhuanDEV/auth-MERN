@@ -12,10 +12,9 @@ dotenv.config();
 const app = express();
 const __dirname = path.resolve();
 
-const cors = require('cors'); // Import the cors 
 
 // Enable CORS for all routes (allows requests from any origin)
-app.use(cors({ origin: "https://auth-mern-wan-fe.vercel.app", credentials: true }));
+app.use(cors("https://auth-mern-wan-fe.vercel.app"));
 
 // reverse proxy trust (agar secure cookie & sameSite:none bekerja di host HTTPS)
 app.set("trust proxy", 1);
