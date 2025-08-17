@@ -33,6 +33,15 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+app.get("/debug", (req, res) => {
+  res.json({
+    message: "Debug API working!",
+    timestamp: new Date(),
+    headers: req.headers
+  });
+});
+
+
 // ===== API routes =====
 app.use("/api/auth", authRoutes);
 
