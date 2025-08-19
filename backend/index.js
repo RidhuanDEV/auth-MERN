@@ -14,7 +14,7 @@ const __dirname = path.resolve();
 
 
 const corsOptions = {
-  origin: "https://auth-mern-wan-fe.vercel.app", // FE URL
+  origin: process.env.CLIENT_URL, // FE URL
   credentials: true,
   methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
