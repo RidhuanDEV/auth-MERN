@@ -2,42 +2,31 @@
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
-import cookieParser from "cookie-parser";
-import path from "path";
-import { fileURLToPath } from "url";
-
 import { connectDb } from "./db/connectDb.js";
+import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.route.js";
+import path from "path";
 
 dotenv.config();
 
 const app = express();
+const __dirname = path.resolve();
+
+app.use(cors({
+  origin: process.env.CLIENT_URL, // FE URL
+  credentials: true
+}));
+
+
+// reverse proxy trust (agar secure cookie & sameSite:none bekerja di host HTTPS)
 app.set("trust proxy", 1);
 
-// ----- CORS -----
-const allowedOrigins = (process.env.CLIENT_URL || "")
-  .split(",")
-  .map(s => s.trim())
-  .filter(Boolean);
-
-const corsOptions = {
-  origin: allowedOrigins.length ? allowedOrigins : true, // allow all if not set
-  credentials: true,
-  methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  optionsSuccessStatus: 204
-};
-
-app.use(cors(corsOptions));
-app.options("*", cors(corsOptions)); // ✅ correct preflight middleware
-
-// ----- Parsers -----
+// ===== Body & Cookie parsers =====
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// ----- Health/debug -----
-app.get("/debug", (req, res) => {
+app.get("/debug", (req, res) => { 
   res.json({
     message: "Debug API working!",
     timestamp: new Date(),
@@ -45,24 +34,18 @@ app.get("/debug", (req, res) => {
   });
 });
 
-// ----- API routes -----
+
+// ===== API routes =====
 app.use("/api/auth", authRoutes);
 
-// ----- (Optional) serve SPA if you actually ship built files with the function -----
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// ===== Static SPA (opsional, jika kamu juga host FE di server yang sama) =====
 
-app.use(express.static(path.join(__dirname, "../frontend/dist")));
-app.get(/^\/(?!api).*/, (_req, res) => {
-  res.sendFile(path.join(__dirname, "../frontend/dist", "index.html"));
+app.use(express.static(path.join(__dirname, "frontend/dist")));
+
+// Layani semua route non-API ke index.html (SPA)
+app.get(/^\/(?!api).*/, (req, res) => {
+  res.sendFile(path.join(__dirname, "frontend", "dist", "index.html"));
 });
 
-// ----- Connect DB once (cache inside your connectDb to avoid re-connecting across invocations) -----
 connectDb();
-
-// ❌ Do NOT app.listen on Vercel
-// const PORT = process.env.PORT || 5000;
-// app.listen(PORT, () => { ... });
-
-// ✅ Export a handler for Vercel
 export default (req, res) => app(req, res);
