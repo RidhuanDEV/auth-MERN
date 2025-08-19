@@ -1,4 +1,0 @@
-M0jCQNLnh4jl9hjt
-ridhuandf1
-
-mongodb+srv://ridhuandf1:<M0jCQNLnh4jl9hjt>@cluster0.bkfccau.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
