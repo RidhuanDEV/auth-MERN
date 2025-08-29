@@ -134,12 +134,19 @@ export const login = async (req, res) => {
 
 export const logout = async (req, res) => {
   //handle logout logic
-  res.clearCookie("token");
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production", // HTTPS di production
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    path: "/", // path wajib sama seperti saat set cookie
+  });
+
   res.status(200).json({
-      success: true,
-      message: "Logged out successfully",
+    success: true,
+    message: "Logged out successfully",
   });
 };
+
 
 export const forgotPassword = async (req, res) => {
   const { email} = req.body;
