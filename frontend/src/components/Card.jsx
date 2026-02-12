@@ -17,15 +17,15 @@ const Card = ({ imageSrc, imageAlt = "image", description = "" }) => {
           <img
             src={imageSrc}
             alt={imageAlt}
-            className="w-full h-full object-fit cover"
+            className="object-cover w-full h-full"
             loading="lazy"
           />
         </div>
       )}
 
       {description ? (
-        <div className="p-2 text-center">
-          <p className="text-green-400 text-lg font-semibold">{description}</p>
+        <div className="py-4 px-2 text-center">
+          <p className="text-green-400 text-sm font-medium">{description}</p>
         </div>
       ) : null}
     </div>

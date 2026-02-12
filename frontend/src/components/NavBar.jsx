@@ -1,11 +1,12 @@
 import React from "react";
-import { NavLink, Link } from "react-router-dom";
+import { NavLink, Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 
 const NavBar = () => {
   const [scrolled, setScrolled] = React.useState(false);
   const [open, setOpen] = React.useState(false);
-  const { isLoading, logout } = useAuthStore();
+  const { isAuthenticated, logout } = useAuthStore();
+  const navigate = useNavigate();
 
   React.useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -22,31 +23,34 @@ const NavBar = () => {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
+  const handleLogout = async () => {
+    await logout();
+    navigate("/");
+  };
+
   const linkBase =
     "px-3 py-2 rounded-md text-sm font-medium transition hover:underline";
-  const primaryBtn =
-    "text-green-400 rounded-lg px-2 py-1 border hover:text-white hover:border-white active:scale-95 transition";
-  const dangerBtn =
-    "cursor-pointer text-red-500 rounded-lg px-2 py-1 border border-red-500 hover:text-white hover:border-white active:scale-95 transition";
 
   return (
     <header
       className={[
         "fixed top-0 left-0 right-0 z-50 transition-all duration-1000 backdrop-blur",
-        scrolled ? "bg-gray-900/50 shadow-md w-[80%] mx-auto rounded-b-2xl" : "bg-gray-900",
+        scrolled
+          ? "bg-gray-900/50 shadow-md w-[80%] mx-auto rounded-b-2xl"
+          : "bg-gray-900",
       ].join(" ")}
     >
-      <nav className=" w-[92%] md:w-[90%] mx-auto rounded-b-xl">
+      <nav className=" w-[92%] md:w-[90%] mx-auto rounded-b-xl pr-8">
         <div className="flex items-center h-16 text-white justify-between px-4 md:px-6">
           {/* Brand */}
           <Link to="/" className="flex items-center font-semibold text-lg">
-            <span className="text-green-500">Dy</span>namic
+            <span className="text-green-500">My</span>Portofolio
           </Link>
 
           {/* Toggle (Mobile) */}
           <button
             type="button"
-            className="lg:hidden inline-flex items-center justify-center p-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-white"
+            className="lg:hidden inline-flex items-center justify-center p-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-white cursor-pointer"
             aria-controls="mobile-menu"
             aria-expanded={open}
             onClick={() => setOpen((v) => !v)}
@@ -60,7 +64,12 @@ const NavBar = () => {
                 stroke="currentColor"
                 aria-hidden="true"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
               </svg>
             ) : (
               <svg
@@ -70,7 +79,12 @@ const NavBar = () => {
                 stroke="currentColor"
                 aria-hidden="true"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             )}
           </button>
@@ -87,7 +101,11 @@ const NavBar = () => {
                   <NavLink
                     to={item.to}
                     className={({ isActive }) =>
-                      `${linkBase} ${isActive ? "underline underline-offset-4 text-green-400" : ""}`
+                      `${linkBase} ${
+                        isActive
+                          ? "underline underline-offset-4 text-green-400"
+                          : ""
+                      }`
                     }
                   >
                     {item.label}
@@ -96,13 +114,37 @@ const NavBar = () => {
               ))}
             </ul>
 
-            <div className="flex items-center gap-3">
-              <Link to="/profile" className={primaryBtn}>
-                Profile
-              </Link>
-              <button onClick={logout} className={dangerBtn} disabled={isLoading}>
-                Logout
-              </button>
+            {/* Auth buttons */}
+            <div className="flex items-center gap-4">
+              {isAuthenticated ? (
+                <>
+                  <NavLink
+                    to="/profile"
+                    className={({ isActive }) =>
+                      `${linkBase} ${
+                        isActive
+                          ? "underline underline-offset-4 text-green-400"
+                          : ""
+                      }`
+                    }
+                  >
+                    Profile
+                  </NavLink>
+                  <button
+                    onClick={handleLogout}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm font-medium transition cursor-pointer"
+                  >
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <Link
+                  to="/login"
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md text-sm font-medium transition"
+                >
+                  Login
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -126,22 +168,55 @@ const NavBar = () => {
                   to={item.to}
                   onClick={() => setOpen(false)}
                   className={({ isActive }) =>
-                    `block ${linkBase} ${isActive ? "underline underline-offset-4 text-green-400" : "text-white"}`
+                    `block ${linkBase} ${
+                      isActive
+                        ? "underline underline-offset-4 text-green-400"
+                        : "text-white"
+                    }`
                   }
                 >
                   {item.label}
                 </NavLink>
               ))}
-            </nav>
 
-            <div className="flex gap-3 pt-2">
-              <Link to="/profile" onClick={() => setOpen(false)} className={`${primaryBtn} flex-1 text-center`}>
-                Profile
-              </Link>
-              <Link to="/logout" onClick={() => setOpen(false)} className={`${dangerBtn} flex-1 text-center`}>
-                Logout
-              </Link>
-            </div>
+              {/* Mobile Auth buttons */}
+              <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-gray-600">
+                {isAuthenticated ? (
+                  <>
+                    <NavLink
+                      to="/profile"
+                      onClick={() => setOpen(false)}
+                      className={({ isActive }) =>
+                        `block ${linkBase} ${
+                          isActive
+                            ? "underline underline-offset-4 text-green-400"
+                            : "text-white"
+                        }`
+                      }
+                    >
+                      Profile
+                    </NavLink>
+                    <button
+                      onClick={() => {
+                        handleLogout();
+                        setOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm font-medium transition cursor-pointer"
+                    >
+                      Logout
+                    </button>
+                  </>
+                ) : (
+                  <Link
+                    to="/login"
+                    onClick={() => setOpen(false)}
+                    className="block px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md text-sm font-medium transition text-center"
+                  >
+                    Login
+                  </Link>
+                )}
+              </div>
+            </nav>
           </div>
         </div>
       </nav>

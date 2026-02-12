@@ -9,22 +9,37 @@ import { useAuthStore } from "../store/authStore.js";
 const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { error, login, isLoading, isAuthenticated, user } = useAuthStore();
+  const { error, login, isLoading, isAuthenticated, user, clearError } =
+    useAuthStore();
   const navigate = useNavigate();
 
-  // Auto-redirect ke dashboard jika user sudah login & verified
+  // Auto-redirect to profile if user is already authenticated and verified
+  // Only check isAuthenticated to minimize dependency changes
   useEffect(() => {
     if (isAuthenticated && user?.isVerified) {
-      navigate("/");
+      // Use replace to prevent back button returning to login
+      navigate("/profile", { replace: true });
     }
-  }, [isAuthenticated, user?.isVerified, navigate]);
+  }, [isAuthenticated, navigate]);
+
+  // Clear error when component unmounts
+  useEffect(() => {
+    return () => {
+      clearError();
+    };
+  }, [clearError]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
+
+    // Prevent multiple submissions
+    if (isLoading) return;
+
     try {
       await login(email, password);
-      // Login success - akan auto-redirect via useEffect
+      // Navigation happens automatically via useEffect watching isAuthenticated
     } catch (error) {
+      // Error is already set in store, just log for debugging
       console.error("Login failed:", error.message);
     }
   };
@@ -48,6 +63,7 @@ const LoginPage = () => {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Email"
             autoComplete="email"
+            disabled={isLoading}
           />
           <Input
             icon={Lock}
@@ -56,6 +72,7 @@ const LoginPage = () => {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Password"
             autoComplete="current-password"
+            disabled={isLoading}
           />
           {error && <p className="text-red-500 font-semibold mt-2">{error}</p>}
           <Link
@@ -67,15 +84,18 @@ const LoginPage = () => {
           <Motion.button
             className="mt-5 w-full py-3 px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold
             rounded-lg shadow-lg hover:from-green-600 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500
-            focus:ring-offset-2 focus:ring-offset-gray-900 transition duration-200"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.96 }}
+            focus:ring-offset-2 focus:ring-offset-gray-900 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            whileHover={{ scale: isLoading ? 1 : 1.05 }}
+            whileTap={{ scale: isLoading ? 1 : 0.96 }}
             disabled={isLoading || !email || !password}
             type="submit"
-            
           >
             {isLoading ? (
-              <Loader className="animate-spin mx-auto" size={24} aria-disabled="true" />
+              <Loader
+                className="animate-spin mx-auto"
+                size={24}
+                aria-label="Loading"
+              />
             ) : (
               "Log In"
             )}

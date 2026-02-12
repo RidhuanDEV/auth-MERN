@@ -22,7 +22,12 @@ const homeSchema = new mongoose.Schema(
       default: [],
     },
     intro: { type: String, required: true, trim: true, default: null },
-    profile_picture_url: { type: String, required: true, trim: true, default: null },
+    profile_picture_url: {
+      type: String,
+      required: true,
+      trim: true,
+      default: null,
+    },
     download_cv: { type: String, required: true, trim: true, default: null },
     facebook_url: { type: String, required: true, trim: true, default: null },
     instagram_url: { type: String, required: true, trim: true, default: null },
@@ -31,24 +36,28 @@ const homeSchema = new mongoose.Schema(
     offer_title: {
       type: String,
       required: true,
-      trim: true, default: null
+      trim: true,
+      default: null,
     },
-    offer_url: {
-      type: [String],
-      enum: [
-        "uiux.jpeg",
-        "web.jpeg",
-        "mobile.jpeg",
-        "backend.jpeg",
-        "ai.jpeg",
-        "frontend.jpeg",
+    // Array of offers with image and description
+    offers: {
+      type: [
+        {
+          image_url: { type: String, required: true },
+          description: { type: String, required: true },
+        },
       ],
       validate: {
         validator: function (v) {
           return v.length <= 3;
         },
-        message: "Offer URL hanya boleh berisi maksimal 3 jenis!",
+        message: "Offers hanya boleh berisi maksimal 3 item!",
       },
+      default: [],
+    },
+    // Keep for backward compatibility
+    offer_url: {
+      type: [String],
       default: [],
     },
     description: { type: String, default: null },
@@ -57,3 +66,9 @@ const homeSchema = new mongoose.Schema(
 );
 
 export const Home = mongoose.model("home", homeSchema);
+
+// Note: For Cloudinary integration:
+// - profile_picture_url: stores Cloudinary image URL
+// - download_cv: stores Cloudinary PDF/file URL
+// - offers[].image_url: stores Cloudinary image URL for each offer
+// - All URLs (facebook_url, instagram_url, github_url, linkedin_url) remain as social media links

@@ -6,6 +6,9 @@ import { connectDb } from "./db/connectDb.js";
 import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.route.js";
 import homeRoutes from "./routes/home.route.js";
+import proyekRoutes from "./routes/proyek.route.js";
+import aboutRoutes from "./routes/about.route.js";
+import uploadRoutes from "./routes/upload.route.js";
 import { csrfMiddleware } from "./middleware/csrfMiddleware.js";
 import path from "path";
 import {
@@ -37,8 +40,8 @@ app.set("trust proxy", 1);
 app.use(generalLimiter);
 
 // ===== Body & Cookie parsers with size limits =====
-app.use(express.json({ limit: "10kb" })); // Prevent large payload DoS
-app.use(express.urlencoded({ extended: true, limit: "10kb" }));
+app.use(express.json({ limit: "50mb" })); // Allow Cloudinary upload URLs
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 app.use(cookieParser());
 
 // ===== CSRF protection (double-submit) =====
@@ -48,6 +51,9 @@ app.use(csrfMiddleware);
 // ===== API routes =====
 app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/home", homeRoutes);
+app.use("/api/projects", proyekRoutes);
+app.use("/api/about", aboutRoutes);
+app.use("/api", uploadRoutes); // Upload route: /api/upload
 
 // ===== Static SPA (opsional, jika kamu juga host FE di server yang sama) =====
 

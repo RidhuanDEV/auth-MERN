@@ -1,42 +1,31 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import FloatingShape from "./components/FloatingShape";
-import SignUpPage from "./pages/SignUpPages";
 import LoginPage from "./pages/LoginPage";
-import EmailVerificationPage from "./pages/EmailVerificationPage";
 import { Toaster } from "react-hot-toast";
-import { useAuthStore } from "./store/authStore";
-import { useEffect } from "react";
 import DashboardPage from "./pages/DashboardPage";
-import ForgotPasswordPage from "./pages/ForgotPasswordPage";
-import ResetPasswordPage from "./pages/ResetPasswordPage";
-import { Loader } from "lucide-react";
 import ProjectPage from "./pages/ProjectPage";
 import AboutPage from "./pages/AboutPage";
 import ProfilePage from "./pages/ProfilePage";
+import { useAuthStore } from "./store/authStore";
+import { useEffect, useRef } from "react";
 
+// Protected Route Component
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, isCheckingAuth } = useAuthStore();
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  } else if (!user.isVerified) {
-    return <Navigate to="/verify-email" replace />;
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-800 via-green-900 to-emerald-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <p className="text-white">Loading...</p>
+        </div>
+      </div>
+    );
   }
 
-  return children;
-};
-
-const RedirectAuthenticatedUserToHome = ({ children }) => {
-  const { isAuthenticated, user } = useAuthStore();
-
-  if (isAuthenticated && user.isVerified) {
-    if (children.props.path === "/projects") {
-      return <Navigate to="/projects" replace />;
-    }
-    if (children.props.path === "/about") {
-      return <Navigate to="/about" replace />;
-    }
-    return <Navigate to="/" replace />;
+  if (!isAuthenticated || !user?.isVerified) {
+    return <Navigate to="/login" replace />;
   }
 
   return children;
@@ -44,15 +33,26 @@ const RedirectAuthenticatedUserToHome = ({ children }) => {
 
 function App() {
   const { checkAuth, isCheckingAuth } = useAuthStore();
+  const hasInitialized = useRef(false);
 
+  // Check authentication on app load - only once (fix infinite loop)
   useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
+    // Prevent multiple calls to checkAuth
+    if (!hasInitialized.current) {
+      hasInitialized.current = true;
+      checkAuth();
+    }
+    // Empty dependency array ensures this runs only once on mount
+  }, []);
 
+  // Show loading while checking authentication
   if (isCheckingAuth) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900">
-        <Loader className="animate-spin text-green-500" size={48} />
+      <div className="min-h-screen bg-gradient-to-br from-gray-800 via-green-900 to-emerald-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <p className="text-white">Checking authentication...</p>
+        </div>
       </div>
     );
   }
@@ -104,69 +104,10 @@ function App() {
         />
 
         <Routes>
-          <Route
-            path="/"
-            element={
-                <DashboardPage />
-            }
-          />
-          <Route
-            path="/signup"
-            element={
-              <RedirectAuthenticatedUserToHome>
-                <SignUpPage />
-              </RedirectAuthenticatedUserToHome>
-            }
-          />
+          <Route path="/" element={<DashboardPage />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route
-            path="/forgot-password"
-            element={
-              <RedirectAuthenticatedUserToHome>
-                <ForgotPasswordPage />
-              </RedirectAuthenticatedUserToHome>
-            }
-          />
-          <Route
-            path="/reset-password"
-            element={
-              <RedirectAuthenticatedUserToHome>
-                <ResetPasswordPage />
-              </RedirectAuthenticatedUserToHome>
-            }
-          />
-          <Route
-            path="/verify-email"
-            element={
-              <RedirectAuthenticatedUserToHome>
-                <EmailVerificationPage />
-              </RedirectAuthenticatedUserToHome>
-            }
-          />
-          <Route
-            path="/reset-password/:token"
-            element={
-              <RedirectAuthenticatedUserToHome>
-                <ResetPasswordPage />
-              </RedirectAuthenticatedUserToHome>
-            }
-          />
-          <Route
-            path="/projects"
-            element={
-              <ProtectedRoute>
-                <ProjectPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/about"
-            element={
-              <ProtectedRoute>
-                <AboutPage />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/projects" element={<ProjectPage />} />
+          <Route path="/about" element={<AboutPage />} />
           <Route
             path="/profile"
             element={
