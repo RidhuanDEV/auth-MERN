@@ -4,10 +4,21 @@ import { generateTokenAndSetCookie } from "../utils/generateTokenAndSetCookie.js
 import { sendVerificationEmail } from "../mailtrap/emails.js";
 import { sendWelcomeEmail } from "../mailtrap/emails.js";
 import crypto from "crypto";
-import { sendPasswordResetEmail, sendResetSuccessEmail } from "../mailtrap/emails.js";
+import {
+  sendPasswordResetEmail,
+  sendResetSuccessEmail,
+} from "../mailtrap/emails.js";
 import dotenv from "dotenv";
 
 dotenv.config();
+
+// Feature flag: when true, users must verify email to activate account.
+// When false, signup will auto-verify the user but password-reset endpoints
+// are disabled (per project requirement).
+const EMAIL_VERIFICATION_ENABLED =
+  process.env.EMAIL_VERIFICATION_ENABLED !== undefined
+    ? process.env.EMAIL_VERIFICATION_ENABLED === "true"
+    : true;
 
 export const signup = async (req, res) => {
   const { email, password, name } = req.body;
@@ -15,99 +26,132 @@ export const signup = async (req, res) => {
     if (!email || !password || !name) {
       throw new Error("All fields are required");
     }
-    const userAlreadyExists = await User.findOne({ email });
 
+    const userAlreadyExists = await User.findOne({ email });
     if (userAlreadyExists) {
       return res
         .status(400)
         .json({ success: false, messsage: "User Already Exists!" });
     }
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const verificationToken = Math.floor(
-      100000 + Math.random() * 900000
-    ).toString();
 
-    const user = new User({
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // If email verification is enabled, create a verification token and
+    // mark user as unverified. If disabled, auto-verify the account and
+    // do not generate/send verification token.
+    let userPayload = {
       email,
       password: hashedPassword,
       name,
-      verificationToken,
-      verificationTokenExpiresAt: Date.now() + 24 * 60 * 60 * 1000,
-    });
+      isVerified: !EMAIL_VERIFICATION_ENABLED, // auto-verify when feature is off
+    };
 
+    if (EMAIL_VERIFICATION_ENABLED) {
+      const verificationToken = Math.floor(
+        100000 + Math.random() * 900000,
+      ).toString();
+      userPayload.verificationToken = verificationToken;
+      userPayload.verificationTokenExpiresAt = Date.now() + 24 * 60 * 60 * 1000;
+    }
+
+    const user = new User(userPayload);
     await user.save();
 
-    //jwt
+    // jwt cookie
     generateTokenAndSetCookie(res, user._id);
 
-    await sendVerificationEmail(user.email, verificationToken)
+    // Send verification email only when feature enabled
+    if (EMAIL_VERIFICATION_ENABLED) {
+      try {
+        await sendVerificationEmail(user.email, user.verificationToken);
+      } catch (emailError) {
+        console.warn(
+          "Warning: verification email failed to send:",
+          emailError.message,
+        );
+      }
+    }
 
+    // Remove verificationToken fields from response if verification disabled
+    let userResponse = { ...user._doc, password: undefined };
+    if (!EMAIL_VERIFICATION_ENABLED) {
+      userResponse.isVerified = true;
+      userResponse.verificationToken = undefined;
+      userResponse.verificationTokenExpiresAt = undefined;
+    }
     res.status(201).json({
       success: true,
-      message: "User created Successfully!",
-      user: {
-        ...user._doc,
-        password: undefined,
-      },
+      message: EMAIL_VERIFICATION_ENABLED
+        ? "Account created — please verify your email."
+        : "Account created (email verification disabled, you are already verified).",
+      user: userResponse,
     });
   } catch (e) {
-      res.status(500).json({ success: false, message: e.message });
+    res.status(500).json({ success: false, message: e.message });
   }
 };
 
-export const verifyEmail = async (req,res) => {
-    // 1-2-3-4-5-6
-    const { code } = req.body;
-    try {
-        const user = await User.findOne({
-            verificationToken: code,
-            verificationTokenExpiresAt: { $gt: Date.now() }, // gt nean greater than (date.now)
-        });
+export const verifyEmail = async (req, res) => {
+  if (!EMAIL_VERIFICATION_ENABLED) {
+    return res.status(400).json({
+      success: false,
+      message: "Email verification is disabled by configuration",
+    });
+  }
 
-        if(!user){
-            return res.status(400).json({
-                success: false,
-                message: "Invalid or expired verification code",
-            })
-        }
-        user.isVerified = true;
-        user.verificationToken = undefined;
-        user.verificationTokenExpiresAt = undefined;
-        await user.save();
+  const { code } = req.body;
+  try {
+    const user = await User.findOne({
+      verificationToken: code,
+      verificationTokenExpiresAt: { $gt: Date.now() },
+    });
 
-        await sendWelcomeEmail(user.email, user.name)
-        res.status(200).json({
-            success: true,
-            message: "Email verified successfully",
-            user: {
-                ...user._doc,
-                password: undefined,
-            },
-        });
-    } catch (error) {
-        
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or expired verification code",
+      });
     }
+
+    user.isVerified = true;
+    user.verificationToken = undefined;
+    user.verificationTokenExpiresAt = undefined;
+    await user.save();
+
+    await sendWelcomeEmail(user.email, user.name);
+    res.status(200).json({
+      success: true,
+      message: "Email verified successfully",
+      user: { ...user._doc, password: undefined },
+    });
+  } catch (error) {
+    console.error("verifyEmail error:", error);
+    res.status(500).json({ success: false, message: "Verification failed" });
+  }
 };
 
 export const login = async (req, res) => {
-  //handle login logic
+  // handle login logic
   const { email, password } = req.body;
   try {
-    const user = await User.findOne({
-        email
-    });
-    if(!user) {
-        return res.status(400).json({
-            success: false,
-            message: "Invalid email",
-        });
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ success: false, message: "Invalid email" });
     }
+
     const isPasswordValid = await bcrypt.compare(password, user.password);
-    if(!isPasswordValid) {
-        return res.status(400).json({
-            success : false,
-            message : "Invalid Password"
-        });
+    if (!isPasswordValid) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid Password" });
+    }
+
+    // Enforce email verification only when feature is enabled
+    if (EMAIL_VERIFICATION_ENABLED && !user.isVerified) {
+      return res.status(403).json({
+        success: false,
+        message: "Please verify your email before logging in",
+      });
     }
 
     generateTokenAndSetCookie(res, user._id);
@@ -116,19 +160,12 @@ export const login = async (req, res) => {
     await user.save();
 
     res.status(200).json({
-        success: true,
-        message: "Login successful",
-        user: {
-            ...user._doc,
-            password: undefined,
-        },
+      success: true,
+      message: "Login successful",
+      user: { ...user._doc, password: undefined },
     });
-    
   } catch (error) {
-    res.status(500).json({
-        success: false,
-        message: error.message,
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -147,17 +184,24 @@ export const logout = async (req, res) => {
   });
 };
 
-
 export const forgotPassword = async (req, res) => {
-  const { email} = req.body;
+  // Password reset is disabled when email verification feature is off
+  if (!EMAIL_VERIFICATION_ENABLED) {
+    return res.status(403).json({
+      success: false,
+      message:
+        "Password reset is disabled because email verification is turned off",
+    });
+  }
+
+  const { email } = req.body;
 
   try {
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
 
     // generate reset token
@@ -169,60 +213,65 @@ export const forgotPassword = async (req, res) => {
 
     await user.save();
 
-    await sendPasswordResetEmail(user.email, `${process.env.CLIENT_URL}/reset-password/${resetToken}`);
-    res.status(200).json({
-      success: true,
-      message: "Password reset email sent",
-    });
-
+    await sendPasswordResetEmail(
+      user.email,
+      `${process.env.CLIENT_URL}/reset-password/${resetToken}`,
+    );
+    res
+      .status(200)
+      .json({ success: true, message: "Password reset email sent" });
   } catch (error) {
-    res.status(500).json({
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const resetPassword = async (req, res) => {
+  // Disallow reset when email verification is off
+  if (!EMAIL_VERIFICATION_ENABLED) {
+    return res.status(403).json({
       success: false,
-      message: error.message,
+      message:
+        "Password reset is disabled because email verification is turned off",
     });
   }
-}
 
-export const resetPassword = async (req,res) => {
   try {
-     const { token } = req.params; // <-- fix here
+    const { token } = req.params; // <-- fix here
     const { password } = req.body;
 
-     const user = await User.findOne({
-      resetPasswordToken : token,
+    const user = await User.findOne({
+      resetPasswordToken: token,
       resetPasswordExpiresAt: { $gt: Date.now() }, // gt means greater than (date.now)
-     })
+    });
 
-     if (!user) {
-       return res.status(400).json({
-         success: false,
-         message: "Invalid or expired reset token",
-       });
-       
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or expired reset token",
+      });
+    }
 
-     }
+    user.password = await bcrypt.hash(password, 10);
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpiresAt = undefined;
+    await user.save();
 
-     user.password = await bcrypt.hash(password, 10);
-     user.resetPasswordToken = undefined;
-     user.resetPasswordExpiresAt = undefined;
-     await user.save();
+    await sendResetSuccessEmail(user.email);
 
-     await sendResetSuccessEmail(user.email);
-
-     res.status(200).json({
-       success: true,
-       message: "Password reset successfully",
-     });
+    res.status(200).json({
+      success: true,
+      message: "Password reset successfully",
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: error.message,
     });
   }
-}
+};
 
 export const checkAuth = async (req, res) => {
-  try { 
+  try {
     // Pastikan req.userId sudah ada (misal lewat middleware auth)
     if (!req.userId) {
       return res.status(401).json({
@@ -241,9 +290,8 @@ export const checkAuth = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      user
+      user,
     });
-
   } catch (error) {
     res.status(500).json({
       success: false,

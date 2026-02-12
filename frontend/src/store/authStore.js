@@ -25,6 +25,7 @@ export const useAuthStore = create((set) => ({
         isAuthenticated: true,
         isLoading: false,
       });
+      return response.data.user;
     } catch (error) {
       const message =
         error?.response?.data?.message || error.message || "Error Signing up";
@@ -62,8 +63,8 @@ export const useAuthStore = create((set) => ({
         isAuthenticated: true,
         isCheckingAuth: false,
       });
-    } catch (error) {
-      set({ error: null, isCheckingAuth: false, isAuthenticated: false });
+    } catch (e) {
+      set({ error: e.message, isCheckingAuth: false, isAuthenticated: false });
     }
   },
   login: async (email, password) => {
@@ -103,6 +104,14 @@ export const useAuthStore = create((set) => ({
   },
   forgotPassword: async (email) => {
     set({ isLoading: true, error: null });
+
+    // Respect server config exposed to frontend via Vite env
+    if (import.meta.env.VITE_EMAIL_VERIFICATION_ENABLED === "false") {
+      const msg = "Password reset is disabled by server configuration";
+      set({ error: msg, isLoading: false });
+      throw new Error(msg);
+    }
+
     try {
       const response = await axios.post(`${API_URL}/forgot-password`, {
         email,
@@ -119,13 +128,20 @@ export const useAuthStore = create((set) => ({
   },
   resetPassword: async (token, password) => {
     set({ isLoading: true, error: null });
+
+    if (import.meta.env.VITE_EMAIL_VERIFICATION_ENABLED === "false") {
+      const msg = "Password reset is disabled by server configuration";
+      set({ error: msg, isLoading: false });
+      throw new Error(msg);
+    }
+
     try {
       // ✅ Encode token supaya aman di URL
       const encodedToken = encodeURIComponent(token);
 
       const response = await axios.post(
         `${API_URL}/reset-password/${encodedToken}`,
-        { password }
+        { password },
       );
       set({ message: response.data.message, isLoading: false });
     } catch (error) {

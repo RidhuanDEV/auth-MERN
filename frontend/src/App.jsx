@@ -22,10 +22,10 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
-const RedirectAuthenticatedUserToHome = ({children}) => {
+const RedirectAuthenticatedUserToHome = ({ children }) => {
   const { isAuthenticated, user } = useAuthStore();
 
-  if(isAuthenticated && user.isVerified) {
+  if (isAuthenticated && user.isVerified) {
     return <Navigate to="/" replace />;
   }
 
@@ -39,10 +39,9 @@ function App() {
     checkAuth();
   }, [checkAuth]);
 
-
   console.log("isAuthenticated:", isAuthenticated);
   console.log("isCheckingAuth:", isCheckingAuth);
-  console.log("user" , user)
+  console.log("user", user);
 
   return (
     <>
@@ -70,41 +69,64 @@ function App() {
         />
 
         <Routes>
-          <Route path="/" element={
-            <ProtectedRoute>
-              <DashboardPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/signup" element={
-            <RedirectAuthenticatedUserToHome>
-              <SignUpPage />
-            </RedirectAuthenticatedUserToHome>
-          } />
-          <Route path="/login" element={
-            <RedirectAuthenticatedUserToHome>
-              <LoginPage />
-            </RedirectAuthenticatedUserToHome>
-          } />
-          <Route path="/forgot-password" element={
-            <RedirectAuthenticatedUserToHome>
-              <ForgotPasswordPage />
-            </RedirectAuthenticatedUserToHome>
-          } />
-          <Route path="/reset-password" element={
-            <RedirectAuthenticatedUserToHome>
-              <ResetPasswordPage />
-            </RedirectAuthenticatedUserToHome>
-          } />
-          <Route path="/verify-email" element={
-            <RedirectAuthenticatedUserToHome>
-              <EmailVerificationPage />
-            </RedirectAuthenticatedUserToHome>
-          } />
-          <Route path="/reset-password/:token" element={
-            <RedirectAuthenticatedUserToHome>
-              <ResetPasswordPage />
-            </RedirectAuthenticatedUserToHome>
-          } />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/signup"
+            element={
+              <RedirectAuthenticatedUserToHome>
+                <SignUpPage />
+              </RedirectAuthenticatedUserToHome>
+            }
+          />
+          <Route
+            path="/login"
+            element={
+              <RedirectAuthenticatedUserToHome>
+                <LoginPage />
+              </RedirectAuthenticatedUserToHome>
+            }
+          />
+          <Route
+            path="/forgot-password"
+            element={
+              <RedirectAuthenticatedUserToHome>
+                <ForgotPasswordPage />
+              </RedirectAuthenticatedUserToHome>
+            }
+          />
+          <Route
+            path="/reset-password"
+            element={
+              <RedirectAuthenticatedUserToHome>
+                <ResetPasswordPage />
+              </RedirectAuthenticatedUserToHome>
+            }
+          />
+          {import.meta.env.VITE_EMAIL_VERIFICATION_ENABLED !== "false" && (
+            <Route
+              path="/verify-email"
+              element={
+                <RedirectAuthenticatedUserToHome>
+                  <EmailVerificationPage />
+                </RedirectAuthenticatedUserToHome>
+              }
+            />
+          )}
+          <Route
+            path="/reset-password/:token"
+            element={
+              <RedirectAuthenticatedUserToHome>
+                <ResetPasswordPage />
+              </RedirectAuthenticatedUserToHome>
+            }
+          />
 
           {/* Catch all routes */}
           <Route path="*" element={<Navigate to="/" replace />} />

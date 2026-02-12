@@ -7,13 +7,28 @@ const userSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
+    username: {
+      type: String,
+      unique: true,
+      sparse: true, // Allows multiple null values
+    },
     password: {
       type: String,
-      required: true,
+      required: function () {
+        return !this.ssoId;
+      }, // Required ONLY if not SSO
     },
     name: {
       type: String,
-      require: true,
+      required: true,
+    },
+    ssoId: {
+      type: String,
+      default: null,
+    },
+    ssoProvider: {
+      type: String,
+      default: null,
     },
     lastLogin: {
       type: Date,
@@ -28,7 +43,7 @@ const userSchema = new mongoose.Schema(
     verificationToken: String,
     verificationTokenExpiresAt: Date,
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export const User = mongoose.model("user", userSchema);
